@@ -1,5 +1,6 @@
 import 'package:dars_74/services/my_location_services.dart';
 import 'package:dars_74/services/yandex_map_services..dart';
+import 'package:dars_74/views/widgets/serach_city.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:location/location.dart';
@@ -96,8 +97,29 @@ class _HomeScreenState extends State<HomeScreen> {
             hintText: "Search city",
             suffixIcon: InkWell(onTap: ()async{
               if(searchCity.text.isNotEmpty){
-                final yandexSearch = YandexSearch();
-              //
+                final resultWithSession = await YandexSuggest.getSuggestions(
+                  text: searchCity.text,
+                  boundingBox: const BoundingBox(
+                      northEast: Point(latitude: 56.0421, longitude: 38.0284),
+                      southWest: Point(latitude: 55.5143, longitude: 37.24841)),
+                  suggestOptions: const SuggestOptions(
+                    suggestType: SuggestType.geo,
+                    suggestWords: true,
+                    userPosition: Point(latitude: 56.0321, longitude: 38),
+                  ),
+                );
+                resultWithSession.$2.then((value) async{
+                  if(value != null){
+                    final data = await showSearch(context: context, delegate: MySearchDelegate(value.items!));
+                    print("bu data $data");
+                    if(data != null){
+                      SuggestItem suggest = data;
+                      setState(() {
+                        najotTalim = Point(latitude: suggest.center!.latitude, longitude: suggest.center!.longitude);
+                      });
+                    }
+                  }
+                });
               }
 
             },child: Icon(Icons.search),)
@@ -154,18 +176,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
                 ...?polylines,
-                // points.length > 0 ?PolylineMapObject(
-                //   mapId: const MapObjectId("birinchiJoy"),
-                //   strokeColor: Colors.blue,
-                //   strokeWidth: 5,
-                //   polyline: Polyline(
-                //     points: [
-                //       // najotTalim,
-                //       points[0]
-                //       // myCurrentLocation,
-                //     ],
-                //   ),
-                // ),
 
                 if(points.length >= 1)
                   PlacemarkMapObject(mapId: MapObjectId("from"), point: points[0],icon: PlacemarkIcon.single(PlacemarkIconStyle(scale: 0.25,image: BitmapDescriptor.fromAssetImage("assets/add_location.png")))),
@@ -188,6 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ) : FloatingActionButton(onPressed: (){
         setState(() {
           points = [];
+          polylines = [];
         });
       },child: Icon(Icons.cancel,color: Colors.red,),)
     );
